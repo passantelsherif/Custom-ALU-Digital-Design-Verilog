@@ -35,19 +35,33 @@ A fully-functional 8-bit Arithmetic Logic Unit (ALU) designed and implemented in
 
 ### Modular Structure
 The ALU follows a highly modular design with separate modules for each component:
+
 ALU_8 (Top Module)
+
 ├── adder (Shared for first 3 arithmetic ops)
+
 ├── andAB (Bitwise AND - Structural)
+
 ├── orAB (Bitwise OR - Structural)
+
 ├── notA (Bitwise NOT - Structural)
+
 ├── nandAB (Bitwise NAND - Structural)
+
 ├── shift_leftB (Arithmetic left shift)
+
 ├── shift_rightB (Arithmetic right shift)
+
 ├── rotate_leftA (Rotate left)
+
 ├── rotate_rightA (Rotate right)
+
 ├── mux (4:1 multiplexer)
+
 ├── zero_detect (Zero flag generator - Structural)
+
 ├── negative_detect (Negative flag)
+
 └── Internal Control Logic
 
 
