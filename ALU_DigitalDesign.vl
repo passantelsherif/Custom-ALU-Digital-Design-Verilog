@@ -1,0 +1,401 @@
+//adder module
+module adder (
+    input wire [7:0] A,
+    input wire [7:0] B,
+    input cin,
+    output wire[7:0] Sum,
+    output cout
+);
+
+    assign {cout,Sum} = A + B + cin;
+
+endmodule
+
+
+//AND module
+module andAB(input wire [7:0] A, input wire [7:0] B, output wire [7:0] out_and);
+
+    and g0(out_and[0], A[0], B[0]);
+    and g1(out_and[1], A[1], B[1]);
+    and g2(out_and[2], A[2], B[2]);
+    and g3(out_and[3], A[3], B[3]);
+    and g4(out_and[4], A[4], B[4]);
+    and g5(out_and[5], A[5], B[5]);
+    and g6(out_and[6], A[6], B[6]);
+    and g7(out_and[7], A[7], B[7]);
+
+endmodule
+
+
+//OR module
+module orAB(input wire[7:0] A, input wire[7:0] B, output wire[7:0] out_or);
+
+    or g0(out_or[0], A[0], B[0]);
+    or g1(out_or[1], A[1], B[1]);
+    or g2(out_or[2], A[2], B[2]);
+    or g3(out_or[3], A[3], B[3]);
+    or g4(out_or[4], A[4], B[4]);
+    or g5(out_or[5], A[5], B[5]);
+    or g6(out_or[6], A[6], B[6]);
+    or g7(out_or[7], A[7], B[7]);
+
+endmodule
+
+
+//NOT module
+module notA(input wire[7:0] A, output wire[7:0] out_notA);
+
+    not g0(out_notA[0], A[0]);
+    not g1(out_notA[1], A[1]);
+    not g2(out_notA[2], A[2]);
+    not g3(out_notA[3], A[3]);
+    not g4(out_notA[4], A[4]);
+    not g5(out_notA[5], A[5]);
+    not g6(out_notA[6], A[6]);
+    not g7(out_notA[7], A[7]);
+
+endmodule
+
+
+//NAND module
+module nandAB(input wire[7:0] A, input wire[7:0] B, output wire[7:0] out_nand);
+
+    nand g0(out_nand[0], A[0], B[0]);
+    nand g1(out_nand[1], A[1], B[1]);
+    nand g2(out_nand[2], A[2], B[2]);
+    nand g3(out_nand[3], A[3], B[3]);
+    nand g4(out_nand[4], A[4], B[4]);
+    nand g5(out_nand[5], A[5], B[5]);
+    nand g6(out_nand[6], A[6], B[6]);
+    nand g7(out_nand[7], A[7], B[7]);
+
+endmodule
+
+
+//1-bit Shift left for B module
+module shift_leftB(input wire[7:0] B, output wire[7:0] out_SLB);
+    assign out_SLB = {B[6:0], 1'b0};
+endmodule
+
+
+//1-bit Shift right for B module
+module shift_rightB(input wire[7:0] B, output wire[7:0] out_SRB);
+    assign out_SRB = {B[7], B[7:1]};
+endmodule
+
+
+//1-bit Rotate left for A module
+module rotate_leftA(input wire[7:0] A, output wire[7:0] out_RLA);
+    assign out_RLA = {A[6:0], A[7]};
+endmodule
+
+
+//1-bit Rotate right for A module
+module rotate_rightA(input wire[7:0] A, output wire[7:0] out_RRA);
+    assign out_RRA = {A[0], A[7:1]};
+endmodule
+
+//MUX module
+module mux(
+    input wire[7:0] I0, input wire[7:0] I1, input wire[7:0] I2, input wire[7:0] I3,  
+    input wire[1:0] S,
+    output wire[7:0] Y
+);
+    assign Y = (S == 2'b00)? I0 :
+               (S == 2'b01)? I1 :
+               (S == 2'b10)? I2 :
+               (S == 2'b11)? I3 :
+                             8'b00000000;
+endmodule
+
+//Zero detector module
+module zero_detect(input wire[7:0] result, output wire zero_flag);
+    wire or01, or23, or45, or67;
+    wire or0123, or4567;
+    wire final_or;
+
+    //OR gates
+    or g0(or01, result[0], result[1]);
+    or g1(or23, result[2], result[3]);
+    or g2(or45, result[4], result[5]);
+    or g3(or67, result[6], result[7]);
+
+    or g4(or0123, or01, or23);
+    or g5(or4567, or45, or67);
+
+    or g6(final_or, or0123, or4567);
+
+    //Zero flag
+    not g7(zero_flag,final_or);
+
+endmodule
+
+
+//Negative detector module
+module negative_detect(input wire[7:0] result, output wire negative_flag);
+    assign negative_flag = result[7];
+
+endmodule
+
+
+module ALU_8(
+    input  wire [7:0] A,
+    input  wire [7:0] B,
+    input  wire [3:0] AluOp,
+    output wire [7:0] Result,
+    output wire Zero,
+    output wire Negative,
+    output wire Overflow
+);
+
+    // =====================================================
+    // SHARED ADDER CONTROL
+    // =====================================================
+
+    // Selected inputs to the shared adder are produced by muxes
+    wire [7:0] sel_A;
+    wire [7:0] sel_B;
+    wire sel_cin;
+
+    wire [7:0] adder_out;
+    wire adder_cout;
+
+    // The shared adder uses the selected inputs
+    adder SHARED_ADDER(sel_A, sel_B, sel_cin, adder_out, adder_cout);
+
+    // =====================================================
+    // PRODUCE ALL OPERATION RESULTS
+    // =====================================================
+
+    // Group 0 (00xx): Arithmetic Results
+    wire [7:0] op_add  = adder_out;     
+    wire [7:0] op_sub  = adder_out;     
+    wire [7:0] op_inc  = adder_out;     
+    wire [7:0] op_unused0 = 8'b0;       
+
+    // Group 1 (01xx): Comparator and Shifts
+    // 0100: A == B (Set on equal)
+    wire [7:0] op_equal;
+    wire [7:0] sub_result;
+    wire eq_cout;
+    adder EQUAL_CHECK(A, ~B, 1'b1, sub_result, eq_cout); // A - B
+    assign op_equal = (sub_result == 8'b0) ? 8'h01 : 8'h00;
+    
+    // 0101: B << 1 (Arithmetic left shift)
+    wire [7:0] op_shl;
+    shift_leftB  SL(B, op_shl);
+    
+    // 0110: B >> 1 (Arithmetic right shift)  
+    wire [7:0] op_shr;
+    shift_rightB SR(B, op_shr);
+    
+    // 0111: UNUSED in Group 1
+    wire [7:0] op_unused1 = 8'b0;
+
+    // Group 2 (10xx): Rotates
+    // 1000: A rotate left by 1
+    wire [7:0] op_rotl;
+    rotate_leftA  RL(A, op_rotl);
+    
+    // 1001: A rotate right by 1
+    wire [7:0] op_rotr;
+    rotate_rightA RR(A, op_rotr);
+    
+    // 1010: UNUSED in Group 2
+    wire [7:0] op_unused2 = 8'b0;
+    
+    // 1011: UNUSED in Group 2  
+    wire [7:0] op_unused3 = 8'b0;
+
+    // Group 3 (11xx): Logical Operations
+    wire [7:0] op_notA;     
+    wire [7:0] op_and;      
+    wire [7:0] op_or;       
+    wire [7:0] op_nand;     
+
+    notA NA(A, op_notA);
+    andAB ANDG(A, B, op_and);
+    orAB ORG(A, B, op_or);
+    nandAB NANDG(A, B, op_nand);
+
+    // =====================================================
+    // Use 4:1 mux instances to select adder inputs and final result
+    // =====================================================
+
+    // arithmetic adder input alternatives (selected by AluOp[1:0])
+    wire [7:0] ADD_A0 = A;
+    wire [7:0] ADD_B0 = B;
+    wire CIN0 = 1'b0;
+
+    wire [7:0] ADD_A1 = B;
+    wire [7:0] ADD_B1 = ~A;
+    wire CIN1 = 1'b1;
+
+    wire [7:0] ADD_A2 = A;
+    wire [7:0] ADD_B2 = 8'h01;
+    wire CIN2 = 1'b0;
+
+    wire [7:0] ADD_A3 = 8'b0;
+    wire [7:0] ADD_B3 = 8'b0;
+    wire CIN3 = 1'b0;
+
+    // muxes to build adder inputs (based on low two bits for arithmetic group)
+    mux mux_addA (ADD_A0, ADD_A1, ADD_A2, ADD_A3, AluOp[1:0], sel_A);
+    mux mux_addB (ADD_B0, ADD_B1, ADD_B2, ADD_B3, AluOp[1:0], sel_B);
+
+    wire [7:0] CIN0_8 = {7'b0, CIN0};
+    wire [7:0] CIN1_8 = {7'b0, CIN1};
+    wire [7:0] CIN2_8 = {7'b0, CIN2};
+    wire [7:0] CIN3_8 = {7'b0, CIN3};
+    wire [7:0] cin_temp;
+    mux mux_addCin(CIN0_8, CIN1_8, CIN2_8, CIN3_8, AluOp[1:0], cin_temp);
+    assign sel_cin = cin_temp[0];
+
+    // =====================================================
+    // (16 ops --> 4 groups of 4)
+    // =====================================================
+
+    wire [7:0] group0, group1, group2, group3;
+
+    // Group 0 (00xx): Arithmetic -> 0000:add, 0001:rev sub, 0010:inc, 0011:unused
+    mux M0(op_add, op_sub, op_inc, op_unused0, AluOp[1:0], group0);
+
+    // Group 1 (01xx): 0100:unused, 0101:equal, 0110:shl, 0111:shr
+    mux M1(op_unused1, op_equal, op_shl, op_shr, AluOp[1:0], group1);
+
+    // Group 2 (10xx): logical ops 1000:notA,1001:and,1010:or,1011:nand
+    mux M2(op_notA, op_and, op_or, op_nand, AluOp[1:0], group2);
+
+    // Group 3 (11xx): rotates 1100:rotl,1101:rotr, others unused
+    mux M3(op_rotl, op_rotr, op_unused2, op_unused3, AluOp[1:0], group3);
+
+    // final selection by the top two bits
+    mux FINAL_MUX(group0, group1, group2, group3, AluOp[3:2], Result);
+
+    // =====================================================
+    // FLAGS (Zero, Negative, Overflow)
+    // =====================================================
+
+    // Zero and Negative flags always use the final Result
+    zero_detect ZD(Result, Zero);
+    negative_detect ND(Result, Negative);
+
+    // Overflow Flag for arithmetic operations 
+    wire Ov_Case1 = sel_A[7] & sel_B[7] & ~adder_out[7]; // P + P = N
+    wire Ov_Case2 = ~sel_A[7] & ~sel_B[7] & adder_out[7]; // N + N = P
+    wire Ov_Flag_Arithmetic = Ov_Case1 | Ov_Case2;
+    
+    assign Overflow = (AluOp[3:2] == 2'b00) ? Ov_Flag_Arithmetic : 1'b0;
+
+endmodule
+
+
+module tb_ALU;
+
+    reg [7:0] A;
+    reg [7:0] B;
+    reg [3:0] AluOp;
+
+    wire [7:0] Result;
+    wire Zero, Negative, Overflow;
+
+    // Instantiate ALU
+    ALU_8 uut (
+        .A(A),
+        .B(B),
+        .AluOp(AluOp),
+        .Result(Result),
+        .Zero(Zero),
+        .Negative(Negative),
+        .Overflow(Overflow)
+    );
+
+    initial begin
+        $display("============================================================");
+        $display("                   ALU TESTBENCH START");
+        $display("============================================================");
+        
+
+        // ===========================================================
+        // Group 0 (00xx): Arithmetic Tests
+        // ===========================================================
+
+        // 0000: A + B (Addition)
+        A=8'd10; B=8'd20; AluOp=4'b0000; #10; 
+        $display("AluOp=0000 | A=%0d | B=%0d | Result (unsigned): %0d | Result (signed 2's complement): %0d | Z=%b N=%b O=%b", A, B, Result, $signed(Result), Zero, Negative, Overflow);
+        
+        A=8'd127; B=8'd1; AluOp=4'b0000; #10;
+        $display("AluOp=0000 | A=%0d | B=%0d | Result (unsigned): %0d | Result (signed 2's complement): %0d | Z=%b N=%b O=%b", A, B, Result, $signed(Result), Zero, Negative, Overflow);
+
+        // 0001: B - A (Reverse Subtraction)
+        A=8'd5; B=8'd1; AluOp=4'b0001; #10;
+        $display("AluOp=0001 | A=%0d | B=%0d | Result (unsigned): %0d | Result (signed 2's complement): %0d | Z=%b N=%b O=%b", A, B, Result, $signed(Result), Zero, Negative, Overflow);
+        
+        A=8'd1; B=8'd5; AluOp=4'b0001; #10;
+        $display("AluOp=0001 | A=%0d | B=%0d | Result (unsigned): %0d | Result (signed 2's complement): %0d | Z=%b N=%b O=%b", A, B, Result, $signed(Result), Zero, Negative, Overflow);
+
+        // 0010: A + 1 (Increment by 1)
+        A=8'd0; B=0; AluOp=4'b0010; #10;
+        $display("AluOp=0010 | A=%0d | B=%0d | Result (unsigned): %0d | Result (signed 2's complement): %0d | Z=%b N=%b O=%b", A, B, Result, $signed(Result), Zero, Negative, Overflow);
+        
+        A=8'hFF; B=0; AluOp=4'b0010; #10;
+        $display("AluOp=0010 | A=%0d | B=%0d | Result (unsigned): %0d | Result (signed 2's complement): %0d | Z=%b N=%b O=%b", A, B, Result, $signed(Result), Zero, Negative, Overflow);
+
+        // ===========================================================
+        // Group 1 (01xx): Comparator and Shifts
+        // ===========================================================
+
+        // 0101: A == B (Set on equal) - per assignment
+        A=8'd7; B=8'd7; AluOp=4'b0101; #10;
+        $display("AluOp=0101 | A=%0d | B=%0d | Result (unsigned): %0d | Result (signed 2's complement): %0d | Z=%b N=%b O=%b", A, B, Result, $signed(Result), Zero, Negative, Overflow);
+        
+        A=8'd10; B=8'd5; AluOp=4'b0101; #10;
+        $display("AluOp=0101 | A=%0d | B=%0d | Result (unsigned): %0d | Result (signed 2's complement): %0d | Z=%b N=%b O=%b", A, B, Result, $signed(Result), Zero, Negative, Overflow);
+
+        // 0110: B << 1 (Arithmetic left shift)
+        A=0; B=8'b01100110; AluOp=4'b0110; #10;
+        $display("AluOp=0110 | A=%0d | B=%0d | Result (unsigned): %0d | Result (signed 2's complement): %0d | Z=%b N=%b O=%b", A, B, Result, $signed(Result), Zero, Negative, Overflow);
+
+        // 0111: B >> 1 (Arithmetic right shift)
+        A=0; B=8'b11100110; AluOp=4'b0111; #10;
+        $display("AluOp=0111 | A=%0d | B=%0d | Result (unsigned): %0d | Result (signed 2's complement): %0d | Z=%b N=%b O=%b", A, B, Result, $signed(Result), Zero, Negative, Overflow);
+
+        // ===========================================================
+        // Group 2 (10xx): Rotates
+        // ===========================================================
+
+        // 1100: A rotate left by 1 - per assignment
+        A=8'b10010011; B=0; AluOp=4'b1100; #10;
+        $display("AluOp=1100 | A=%0d | B=%0d | Result (unsigned): %0d | Result (signed 2's complement): %0d | Z=%b N=%b O=%b", A, B, Result, $signed(Result), Zero, Negative, Overflow);
+
+        // 1101: A rotate right by 1 - per assignment
+        A=8'b10010011; B=0; AluOp=4'b1101; #10;
+        $display("AluOp=1101 | A=%0d | B=%0d | Result (unsigned): %0d | Result (signed 2's complement): %0d | Z=%b N=%b O=%b", A, B, Result, $signed(Result), Zero, Negative, Overflow);
+
+        // ===========================================================
+        // Group 3 (11xx): Logical Operations
+        // ===========================================================
+
+        // 1000: not A (Bitwise NOT) - per assignment
+        A=8'b01010101; B=0; AluOp=4'b1000; #10;
+        $display("AluOp=1000 | A=%0d | B=%0d | Result (unsigned): %0d | Result (signed 2's complement): %0d | Z=%b N=%b O=%b", A, B, Result, $signed(Result), Zero, Negative, Overflow);
+
+        // 1001: A and B (Bitwise AND)
+        A=8'b10101010; B=8'b11001100; AluOp=4'b1001; #10;
+        $display("AluOp=1001 | A=%0d | B=%0d | Result (unsigned): %0d | Result (signed 2's complement): %0d | Z=%b N=%b O=%b", A, B, Result, $signed(Result), Zero, Negative, Overflow);
+
+        // 1010: A or B (Bitwise OR)                                           
+        A=8'b10100010; B=8'b00001111; AluOp=4'b1010; #10;
+        $display("AluOp=1010 | A=%0d | B=%0d | Result (unsigned): %0d | Result (signed 2's complement): %0d | Z=%b N=%b O=%b", A, B, Result, $signed(Result), Zero, Negative, Overflow);
+
+        // 1011: A nand B (Bitwise NAND)
+        A=8'b10101010; B=8'b11110000; AluOp=4'b1011; #10;
+        $display("AluOp=1011 | A=%0d | B=%0d | Result (unsigned): %0d | Result (signed 2's complement): %0d | Z=%b N=%b O=%b", A, B, Result, $signed(Result), Zero, Negative, Overflow);
+
+        $display("============================================================");
+        $display("                   ALU TESTBENCH END");
+        $display("============================================================");
+        $finish;
+    end
+
+endmodule
