@@ -1,4 +1,4 @@
-# 🧮 Custom 8-bit ALU - Verilog Implementation
+# Custom 8-bit ALU - Verilog Implementation
 
 A fully-functional 8-bit Arithmetic Logic Unit (ALU) designed and implemented in Verilog as part of a Computer Organization and Architecture course. This ALU supports 12 distinct operations including arithmetic, logical, shift, and rotate operations with comprehensive flag handling.
 
